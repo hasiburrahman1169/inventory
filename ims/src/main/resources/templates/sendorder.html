@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Invoice Creation</title>
+    <link rel="icon" type="image/png" sizes="16x16" th:href="@{/images/favicon.png}">
+    <link th:href="@{/css/style.min.css}" rel="stylesheet">
+</head>
+<body>
+<div id="main-wrapper" data-layout="vertical" data-navbarbg="skin5" data-sidebartype="full"
+     data-sidebar-position="absolute" data-header-position="absolute" data-boxed-layout="full">
+
+    <div th:replace="header :: header"></div>
+
+    <div class="page-wrapper">
+        <div class="page-breadcrumb">
+            <div class="row">
+                <div class="col-12 d-flex no-block align-items-center">
+                    <h4 class="page-title">Create Invoice</h4>
+                </div>
+            </div>
+        </div>
+
+        <div class="container-fluid">
+            <!-- Notification Bar -->
+            <div id="success-alert" class="alert alert-success alert-dismissible fade" role="alert"
+                style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+                <span id="success-alert-message">A simple success alert—check it out!</span>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-0">Invoice Details</h5>
+                    
+                    <form id="invoice-form">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="control-label">Customer</label>
+                                <select class="form-control" id="customer-name">
+                                    <option value="">Select Customer</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="control-label">Category</label>
+                                <select class="form-control" id="category">
+                                    <option value="">Select Category</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="control-label">Product</label>
+                                <select class="form-control" id="product">
+                                    <option value="">Select Product</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="control-label">Quantity</label>
+                                <input type="number" class="form-control" id="quantity" placeholder="Quantity">
+                            </div>
+                            <div class="col-md-1 d-flex align-items-end">
+                                <button type="button" class="btn btn-primary" id="add-to-invoice">Add</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Invoice Table -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title mb-0">Invoice Summary</h5>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Product</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Quantity</th>
+                                <th scope="col">Price</th>
+                                <th scope="col">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoice-table-body">
+                            <!-- Invoice entries will be dynamically inserted here -->
+                        </tbody>
+                    </table>
+                    <button type="button" class="btn btn-success" id="save-invoice">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="footer :: footer"></div>
+</div>
+
+<!-- jQuery and Bootstrap JS -->
+<div th:replace="script::script"></div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+<script>
+$(document).ready(function () {
+    let productPrices = {};
+
+    // Notification Bar
+    function showSuccessAlert(message) {
+        $('#success-alert-message').text(message);
+        $('#success-alert').addClass('show');
+        setTimeout(function () {
+            $('#success-alert').removeClass('show');
+        }, 3000);
+    }
+
+    // Fetch and populate customers
+    $.ajax({
+        url: '/customers/get-customers',
+        method: 'GET',
+        contentType: 'application/json',
+        success: function (data) {
+            data.forEach(customer => {
+                $('#customer-name').append(new Option(customer.name, customer.id));
+            });
+        }
+    });
+
+    // Fetch and populate categories
+    $.ajax({
+        url: '/get-category',
+        method: 'GET',
+        contentType: 'application/json',
+        success: function (data) {
+            data.forEach(category => {
+                $('#category').append(new Option(category.c_name, category.c_id));
+            });
+        }
+    });
+
+    // Fetch and populate products based on selected category
+    $('#category').on('change', function () {
+        const categoryId = $(this).val();
+        $('#product').empty().append(new Option("Select Product", ""));
+        if (categoryId) {
+            $.ajax({
+                url: `/products/get?category=${categoryId}`,
+                method: 'GET',
+                contentType: 'application/json',
+                success: function (data) {
+                    data.forEach(product => {
+                        $('#product').append(new Option(product.p_name, product.p_id));
+                        productPrices[product.p_id] = product.price; // Store product price for calculations
+                    });
+                }
+            });
+        }
+    });
+
+    // Add item to invoice table with total calculation
+    $('#add-to-invoice').on('click', function () {
+        const product = $('#product option:selected').text();
+        const productId = $('#product').val();
+        const quantity = $('#quantity').val();
+        const date = new Date().toLocaleDateString();
+
+        if (!$('#customer-name').val() || !product || !quantity) {
+            alert('All fields are required!');
+            return;
+        }
+
+        const price = productPrices[productId] || 0;
+        const total = (quantity * price).toFixed(2);
+
+        const row = `
+            <tr>
+                <td>${product}</td>
+                <td>${date}</td>
+                <td>${quantity}</td>
+                <td>$${price}</td>
+                <td>$${total}</td>
+            </tr>
+        `;
+        $('#invoice-table-body').append(row);
+
+        // Clear only category, product, and quantity fields after adding
+        $('#category').val('');
+        $('#product').val('');
+        $('#quantity').val('');
+    });
+
+    // Save invoice and reset all inputs
+    $('#save-invoice').on('click', function () {
+        const customerId = $('#customer-name').val();
+        const invoiceData = [];
+        
+        $('#invoice-table-body tr').each(function () {
+            const row = $(this);
+            const rowData = {
+                customer_id: customerId,
+                product_name: row.find('td').eq(0).text(),
+                quantity: row.find('td').eq(2).text(),
+                totalPrice: row.find('td').eq(4).text().replace('$', '')
+            };
+            invoiceData.push(rowData);
+        });
+
+        $.ajax({
+            url: '/orders/save',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(invoiceData),
+            success: function () {
+                showSuccessAlert('Invoice saved successfully!');
+
+                // Reset form fields and invoice table
+                $('#customer-name').val('');
+                $('#category').val('');
+                $('#product').val('');
+                $('#quantity').val('');
+                $('#invoice-table-body').empty();
+            }
+        });
+    });
+});
+</script>
+
+</body>
+</html>

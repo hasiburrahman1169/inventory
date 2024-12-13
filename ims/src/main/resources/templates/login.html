@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login</title>
+    <link rel="icon" type="image/png" sizes="16x16" th:href="@{/images/favicon.png}">
+    <link th:href="@{/libs/fullcalendar/dist/fullcalendar.min.css}" rel="stylesheet" />
+    <link th:href="@{/extra-libs/calendar/calendar.css}" rel="stylesheet" />
+    <link th:href="@{/css/style.min.css}" rel="stylesheet">
+
+    <!-- Bootstrap CSS for Modal -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- jQuery -->
+    <script th:src="@{/libs/jquery/dist/jquery.min.js}"></script>
+    <!-- Bootstrap JS for Modal -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+    <div class="main-wrapper">
+        <!-- Preloader -->
+        <div class="preloader">
+            <div class="lds-ripple">
+                <div class="lds-pos"></div>
+                <div class="lds-pos"></div>
+            </div>
+        </div>
+
+        <!-- Login Box -->
+        <div class="auth-wrapper d-flex justify-content-center align-items-center bg-dark" style="min-height: 100vh;">
+            <div class="card bg-dark border-secondary" style="width: 30rem; max-width: 90%;">
+                <div class="card-body">
+                    <div class="text-center pb-3">
+                        <span class="db">
+                            <img th:src="@{/images/background/logologo.png}" alt="logo"
+                                style="max-width: 90%; height: auto;" />
+                        </span>
+
+                    </div>
+                    <!-- Login Form -->
+                    <form class="form-horizontal mt-2" id="loginForm" onsubmit="return false;">
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text bg-success text-white"><i class="ti-email"></i></span>
+                                <input type="email" id="email" class="form-control" placeholder="Email" required="">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text bg-warning text-white"><i class="ti-pencil"></i></span>
+                                <input type="password" id="password" class="form-control" placeholder="Password"
+                                    required="">
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <button class="btn btn-info btn-sm" id="to-recover" type="button">
+                                <i class="fa fa-lock me-1"></i> Lost password?
+                            </button>
+                            <button class="btn btn-success btn-sm text-white" id="loginBtn" type="submit">
+                                Login
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <style>
+                .card {
+                    border-radius: 10px;
+                    box-shadow: 0px 4px 10px rgb(255, 250, 160);
+                    transition: transform 0.3s ease, box-shadow 0.3s ease;
+                    /* Smooth transition for transform and shadow */
+                }
+
+                .card:hover {
+                    transform: translateY(-10px);
+                    /* Slight upward movement on hover */
+                    box-shadow: 0px 8px 20px rgb(255, 255, 180);
+                    /* Enhance shadow on hover */
+                }
+
+                .card-body {
+                    padding: 2rem;
+                }
+            </style>
+
+
+        </div>
+
+
+    </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            $(".preloader").fadeOut();
+
+            // Frontend validation and AJAX request on login button click
+            $('#loginBtn').click(function () {
+                var email = $('#email').val().trim();
+                var password = $('#password').val().trim();
+
+                // Simple frontend validation
+                if (!validateEmail(email)) {
+                    alert("Please enter a valid email address.");
+                    return;
+                }
+
+                if (password === "") {
+                    alert("Please enter a valid password.");
+                    return;
+                }
+
+                // Preparing data as JSON
+                var loginData = {
+                    "email": email,
+                    "password": password
+                };
+
+                // jQuery AJAX request
+                $.ajax({
+                    url: 'login',  // Adjust the URL as needed
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(loginData),
+                    success: function (response) {
+                        if (response.status === 'success') {
+                            // Show redirecting message on success
+                            $('#redirectingMessage').show();
+
+                            // Redirect after 3 seconds
+                            setTimeout(function () {
+                                window.location.href = '/dashboard';  // Redirect to the dashboard
+                            }, 3000);
+                        } else {
+                            alert(response.message);  // Show error message
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        alert("Error during login. Please try again. " + xhr.responseJSON.message);
+                    }
+                });
+            });
+
+            // Simple email validation function
+            function validateEmail(email) {
+                var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(email);
+            }
+
+            // Show password recovery form if needed
+            $('#to-recover').on("click", function () {
+                // Implement your password recovery logic here
+                alert("Password recovery feature not implemented yet.");
+            });
+        });
+    </script>
+
+</body>
+
+</html>
